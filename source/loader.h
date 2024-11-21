@@ -1,7 +1,5 @@
 #pragma once
 
-// #include <tira/image.h>
-// #include <tira/parser.h>
 #include <iostream>
 #include <fstream>
 

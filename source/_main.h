@@ -1,49 +1,24 @@
 
-#include <iostream>
 
 #include "setting.h"
-
-
-// tira fix bug
-// #include <cstddef> // for std::byte
-// std::byte myByte = std::byte(0xFF);
-// #define byte windows_byte
-// #include <Windows.h>
-// #undef byte
-// #include <cstddef> 
-
-#include <opencv2/opencv.hpp>
-
-
-#include <iostream>
-#include <vector>
-#include <cstdlib>  // run command on terminal
-#include <string>
-
-#include <chrono> // For high-resolution clock
-#include <iomanip> // For setting precision
-
-#include <thread>
-
-// #include <tira/image.h>
-// #include <tira/parser.h>
-
-//#include "ray.h"
-//#include "hit.h"
 #include "loader.h"
 #include "compute.h"
 #include "gobject.h"
 #include "command_line_tool.h"
 
+#include <opencv2/opencv.hpp>
+
+#include <iostream>
+#include <vector>
+#include <cstdlib>  // run command on terminal
+#include <string>
+#include <chrono> // For high-resolution clock
+#include <iomanip> // For setting precision
+#include <thread>
+
 
 using namespace GeoShape;
 using namespace std::chrono; // For convenient timing functions
-
-
-
-
-
-
 
 int _main(int argc, char* argv[]) {
     cArg::CommandLineArgs args;
