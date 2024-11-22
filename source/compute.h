@@ -30,7 +30,21 @@ using namespace GeoShape;
 
 
 
-__host__ __device__ glm::vec3 compute_lighting(const glm::vec3& point, const glm::vec3& normal, Light* lights, int num_light) {
+__host__ glm::vec3 compute_lighting(const glm::vec3& point, const glm::vec3& normal, const std::vector<Light>& lights) {
+    glm::vec3 light_color(0.0f);
+    //glm::vec3 ambient_light(0.2f, 0.2f, 0.2f);
+    //glm::vec3 light_color = ambient_light;
+
+    for (const auto& light : lights) {
+        glm::vec3 light_dir = glm::normalize(light.position - point);
+        float diffuse_intensity = std::max(glm::dot(normal, light_dir), 0.0f);
+        light_color += diffuse_intensity * light.color;
+    }
+
+    return glm::clamp(light_color, 0.0f, 1.0f);
+}
+
+__device__ glm::vec3 compute_lighting(const glm::vec3& point, const glm::vec3& normal, Light* lights, int num_light) {
     glm::vec3 light_color(0.0f);
     //glm::vec3 ambient_light(0.2f, 0.2f, 0.2f);
     //glm::vec3 light_color = ambient_light;

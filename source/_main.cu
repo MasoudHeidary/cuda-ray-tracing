@@ -18,7 +18,6 @@
 using namespace GeoShape;
 using namespace std::chrono; // For convenient timing functions
 
-
 __global__ void render_image(
     Camera camera,
     glm::vec3 *image,
@@ -75,11 +74,11 @@ __global__ void render_image(
             }
         }
 
-        for (int i=0; i<num_triangles; i++)
+        for (int i = 0; i < num_triangles; i++)
         {
-            if(triangles[i].intersect(ray, hit_record))
+            if (triangles[i].intersect(ray, hit_record))
             {
-                if(hit_record.t < closest_hit_record.t)
+                if (hit_record.t < closest_hit_record.t)
                 {
                     closest_hit_record = hit_record;
                 }
@@ -173,10 +172,11 @@ int _main(int argc, char *argv[])
     std::cout << "spheres: " << spheres.size() << std::endl;
     std::cout << "planes: " << planes.size() << std::endl;
     std::cout << "triangle: " << triangles.size() << std::endl;
+    std::cout << std::endl;
 
     auto start_time = high_resolution_clock::now();
 
-    if (true)
+    if (cuda_enable)
     {
         glm::vec3 *d_image;
         cudaMalloc(&d_image, image_width * image_height * sizeof(glm::vec3));
@@ -275,78 +275,151 @@ int _main(int argc, char *argv[])
         // Clean up
         delete[] h_image;
     }
+    else
+    {
+        // chunk render
+        auto render_chunk = [&](int start_row, int end_row, int thread_id)
+        {
+            // Render loop
+            for (int j = start_row; j < end_row; ++j)
+            {
+                // std::cout << "Rendering row " << "[" << j << "/" << image_height << "]" << std::endl;
+                for (int i = 0; i < image_width; ++i)
+                {
+                    // auto pixel_start_time = high_resolution_clock::now();  // Start timing pixel
 
-    // for (int j = 0; j < image_height; ++j) {
-    //     for (int i = 0; i < image_width; ++i) {
+                    float u = float(image_width - 1 - i) / float(image_width - 1);
+                    float v = float(image_height - 1 - j) / (image_height - 1); // Flip the v coordinate
 
-    //         float u = float(image_width - 1 - i) / float(image_width - 1);
-    //         float v = float(image_height - 1 - j) / (image_height - 1);  // Flip the v coordinate
+                    Ray ray = camera.get_ray(u, v);
+                    glm::vec3 pixel_color = background;
+                    Hit closest_hit_record; // Store the closest hit information
+                    bool hit_anything = false;
+                    float closest_t = std::numeric_limits<float>::max(); // Set to a very large number initially
 
-    //         Ray ray = camera.get_ray(u, v);
-    //         glm::vec3 pixel_color = background;
-    //         Hit closest_hit_record;  // Store the closest hit information
-    //         // bool hit_anything = false;
-    //         // float closest_t = std::numeric_limits<float>::max();  // Set to a very large number initially
+                    // Iterate through each sphere to find the closest intersection
+                    for (const Sphere &sphere : spheres)
+                    {
+                        Hit hit_record;
+                        if (sphere.intersect(ray, hit_record))
+                        {
+                            if (hit_record.t < closest_t)
+                            {
+                                closest_t = hit_record.t;
+                                closest_hit_record = hit_record;
+                                hit_anything = true;
+                            }
+                        }
+                    }
 
-    //         // Iterate through each sphere to find the closest intersection
-    //         for (const Sphere& sphere : spheres) {
-    //             Hit hit_record;
-    //             if (sphere.intersect(ray, hit_record)) {
-    //                 if (hit_record.t < closest_hit_record.t) {
-    //                     // closest_hit_record.t = hit_record.t;
-    //                     closest_hit_record = hit_record;
-    //                     // hit_anything = true;
-    //                     closest_hit_record.hit = true;
-    //                 }
-    //             }
-    //         }
+                    // Check plane intersections
+                    for (const Plane &plane : planes)
+                    {
+                        Hit hit_record;
+                        if (plane.intersect(ray, hit_record))
+                        {
+                            if (hit_record.t < closest_t)
+                            {
+                                closest_t = hit_record.t;
+                                closest_hit_record = hit_record;
+                                hit_anything = true;
+                            }
+                        }
+                    }
 
-    //         // // Check plane intersections
-    //         // for (const Plane& plane : planes) {
-    //         //     Hit hit_record;
-    //         //     if (plane.intersect(ray, hit_record)) {
-    //         //         if (hit_record.t < closest_t) {
-    //         //             closest_t = hit_record.t;
-    //         //             closest_hit_record = hit_record;
-    //         //             hit_anything = true;
-    //         //         }
-    //         //     }
-    //         // }
+                    // Check triangle intersections
+                    for (const Triangle &triangle : triangles)
+                    {
+                        Hit hit_record;
+                        if (triangle.intersect(ray, hit_record))
+                        {
+                            if (hit_record.t < closest_t)
+                            {
+                                closest_t = hit_record.t;
+                                closest_hit_record = hit_record;
+                                hit_anything = true;
+                            }
+                        }
+                    }
 
-    //         // // Check triangle intersections
-    //         // for (const Triangle& triangle : triangles) {
-    //         //     Hit hit_record;
-    //         //     if (triangle.intersect(ray, hit_record)) {
-    //         //         if (hit_record.t < closest_t) {
-    //         //             closest_t = hit_record.t;
-    //         //             closest_hit_record = hit_record;
-    //         //             hit_anything = true;
-    //         //         }
-    //         //     }
-    //         // }
+                    // Compute lighting and color based on the closest hit
+                    if (hit_anything)
+                    {
+                        glm::vec3 point = ray.at(closest_hit_record.t);
 
-    //         // Compute lighting and color based on the closest hit
-    //         if (closest_hit_record.hit) {
-    //             glm::vec3 point = ray.at(closest_hit_record.t);
+                        // Measure lighting calculation time
+                        // auto lighting_start_time = high_resolution_clock::now();
+                        glm::vec3 lighting;
+                        if (shadow_enable)
+                        {
+                            // lighting = compute_lighting_and_shadow(point, closest_hit_record.normal, lights, spheres);
+                        }
+                        else
+                        {
+                            lighting = compute_lighting(point, closest_hit_record.normal, lights);
+                        }
 
-    //             glm::vec3 lighting;
-    //             // if (shadow_enable)
-    //             //     lighting = compute_lighting_and_shadow(point, closest_hit_record.normal, lights, spheres);
-    //             // else
-    //                 lighting = compute_lighting(point, closest_hit_record.normal, lights);
+                        pixel_color = glm::clamp(closest_hit_record.color * lighting, 0.0f, 1.0f);
+                    }
+                    else
+                    {
+                        pixel_color = background; // If no intersection, use the background color
+                    }
 
-    //             pixel_color = glm::clamp(closest_hit_record.color * lighting, 0.0f, 1.0f);
-    //         }
-    //         else {
-    //             pixel_color = background;  // If no intersection, use the background color
-    //         }
+                    image.at<cv::Vec3b>(j, i)[0] = static_cast<unsigned char>(255.0 * pixel_color.b); // Blue channel
+                    image.at<cv::Vec3b>(j, i)[1] = static_cast<unsigned char>(255.0 * pixel_color.g); // Green channel
+                    image.at<cv::Vec3b>(j, i)[2] = static_cast<unsigned char>(255.0 * pixel_color.r); // Red channel
+                }
+            }
 
-    //         // Set pixel color in the image
-    //         image.at<cv::Vec3b>(j, i)[0] = static_cast<unsigned char>(255.0 * pixel_color.b);  // Blue channel
-    //         image.at<cv::Vec3b>(j, i)[1] = static_cast<unsigned char>(255.0 * pixel_color.g);  // Green channel
-    //         image.at<cv::Vec3b>(j, i)[2] = static_cast<unsigned char>(255.0 * pixel_color.r);  // Red channel
-    //     }
-    // }
+            // end of chunk render
+        };
+
+        // Launch threads
+        std::vector<std::thread> threads;
+        int rows_per_thread = image_height / num_threads; // Divide the rows evenly among threads
+        for (unsigned int t = 0; t < num_threads; ++t)
+        {
+            int start_row = t * rows_per_thread;
+            int end_row = (t == num_threads - 1) ? image_height : start_row + rows_per_thread;
+            threads.push_back(std::thread(render_chunk, start_row, end_row, t));
+        }
+
+        // Join threads (wait for them to finish)
+        for (std::thread &thread : threads)
+        {
+            if (thread.joinable())
+            {
+                thread.join();
+            }
+        }
+        for (unsigned int t = 0; t < num_threads; ++t)
+        {
+            // std::cout << "Thread " << t << " execution time: " << thread_execution_times[t] << " seconds" << std::endl;
+        }
+
+        // End total render time
+        auto end_time = high_resolution_clock::now();
+        double total_render_time = duration<double>(end_time - start_time).count();
+
+        // Output profiling results
+        std::cout << std::fixed << std::setprecision(6);
+        std::cout << "Total render time: " << total_render_time << " seconds" << std::endl;
+        // std::cout << "Average time per pixel: " << total_pixel_time / (image_width * image_height) << " seconds" << std::endl;
+        // std::cout << "Total lighting calculation time: " << total_lighting_time << " seconds" << std::endl;
+        // std::cout << "Average lighting calculation time per pixel: " << total_lighting_time / (image_width * image_height) << " seconds" << std::endl;
+
+        // open the picture after saving
+        // image.save(output_file_name);
+        if (cv::imwrite(output_file_name, image))
+        {
+            std::cout << "Image saved successfully to " << output_file_name << std::endl;
+        }
+        else
+        {
+            std::cout << "Error: Could not save the image!" << std::endl;
+        }
+    }
 
     // // End total render time
     // auto end_time = high_resolution_clock::now();

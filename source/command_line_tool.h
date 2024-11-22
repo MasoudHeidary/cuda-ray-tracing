@@ -161,13 +161,16 @@ namespace cArg {
             else if (arg == "--shadow") {
                 if(i+1 >= argc)
                     return ErrorCode::INVALID_SHADOW;
-                std::string arg = std::string(argv[++i]);
-                if (arg == "true")
+                std::string value = std::string(argv[++i]);
+                if (value == "true")
                     args->shadow = true;
-                else if (arg == "false") 
+                else if (value == "false") 
                     args->shadow = false;
                 else
                     return ErrorCode::INVALID_SHADOW;
+            }
+            else if (arg == "--cuda") {
+                args->cuda = true;
             }
             else {
                 /*std::cerr << "Unknown or incomplete argument: " << arg << std::endl;
