@@ -72,6 +72,7 @@ namespace GeoShape {
                     glm::vec3 point = ray.at(t);
                     hit.normal = glm::normalize(point - center);  // Normal at the intersection point
                     // hit.center = center;  // Store the center of the sphere
+                    hit.hit = true;
                     return true;
                 }
             }
@@ -89,7 +90,7 @@ namespace GeoShape {
         Plane(const glm::vec3& p, const glm::vec3& n, const glm::vec3& col)
             : point(p), normal(glm::normalize(n)), color(col) {}
 
-        bool intersect(const Ray& ray, Hit& hit) const {
+        __host__ __device__ bool intersect(const Ray& ray, Hit& hit) const {
             // Compute the denominator D�N (ray direction dot plane normal)
             float denom = glm::dot(ray.direction, normal);
 
@@ -103,6 +104,7 @@ namespace GeoShape {
                     hit.t = t;
                     hit.color = color;
                     hit.normal = normal;
+                    hit.hit = true;
                     return true;
                 }
             }
@@ -121,7 +123,7 @@ namespace GeoShape {
             normal = glm::normalize(glm::cross(v1 - v0, v2 - v0));  // Precompute the normal
         }
 
-        bool intersect(const Ray& ray, Hit& hit) const {
+        __host__ __device__ bool intersect(const Ray& ray, Hit& hit) const {
             const float EPSILON = 1e-8;
             glm::vec3 edge1 = v1 - v0;
             glm::vec3 edge2 = v2 - v0;
@@ -146,6 +148,7 @@ namespace GeoShape {
                 hit.t = t;
                 hit.normal = normal;
                 hit.color = color;  // Set the triangle's color
+                hit.hit = true;
                 return true;
             }
             else {
