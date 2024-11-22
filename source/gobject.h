@@ -23,7 +23,7 @@ namespace GeoShape {
         Camera(const glm::vec3& pos, const glm::vec3& look_dir, const glm::vec3& up_dir, float field_of_view)
             : position(pos), look(glm::normalize(look_dir - pos)), up(glm::normalize(up_dir)), fov(field_of_view) {}
 
-        Ray get_ray(float u, float v) const {
+        __host__ __device__ Ray get_ray(float u, float v) const {
             float aspect_ratio = 1.0f; // Adjust this as needed
             float theta = glm::radians(fov);
             float h = glm::tan(theta / 2.0f);
@@ -55,7 +55,7 @@ namespace GeoShape {
 
         Sphere(const glm::vec3& c, float r, const glm::vec3& col) : center(c), radius(r), color(col) {}
 
-        bool intersect(const Ray& ray, Hit& hit) const {
+        __host__ __device__ bool intersect(const Ray& ray, Hit& hit) const {
             glm::vec3 oc = ray.origin - center;
             float a = glm::dot(ray.direction, ray.direction);
             float b = 2.0 * glm::dot(oc, ray.direction);
@@ -71,7 +71,7 @@ namespace GeoShape {
                     hit.color = color;
                     glm::vec3 point = ray.at(t);
                     hit.normal = glm::normalize(point - center);  // Normal at the intersection point
-                    hit.center = center;  // Store the center of the sphere
+                    // hit.center = center;  // Store the center of the sphere
                     return true;
                 }
             }

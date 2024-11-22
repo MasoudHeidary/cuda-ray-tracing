@@ -31,7 +31,7 @@ using namespace std;
 //         return 0;
 // }
 // #else
-    #include"_main.h"
+    #include"_main.cu"
     int main(int argc, char* argv[]) {
         return _main(argc, argv);
         }

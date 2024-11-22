@@ -1,4 +1,4 @@
-#define CHECK_CMAKE false
+// #define CHECK_CMAKE false
 
 //#define SHADOW_ENABLE true
 
