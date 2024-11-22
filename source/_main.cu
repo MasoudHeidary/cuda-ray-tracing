@@ -19,56 +19,6 @@ using namespace GeoShape;
 using namespace std::chrono; // For convenient timing functions
 
 
-
-__global__ void check_triangle_intersections(
-    Ray ray,
-    Triangle *triangles,
-    int num_triangles,
-    Hit *block_closest_hit)
-{
-    extern __shared__ Hit shared_hits[]; // Shared memory for thread block
-
-    int tid = threadIdx.x;
-    int i = blockIdx.x * blockDim.x + tid;
-
-    // Initialize thread's closest hit record
-    Hit thread_closest_hit;
-    thread_closest_hit.hit = false;
-    thread_closest_hit.t = FLT_MAX;
-
-    if (i < num_triangles)
-    {
-        Hit hit_record;
-        if (triangles[i].intersect(ray, hit_record) && hit_record.t < thread_closest_hit.t)
-        {
-            thread_closest_hit = hit_record;
-        }
-    }
-
-    // Write thread's closest hit to shared memory
-    shared_hits[tid] = thread_closest_hit;
-    __syncthreads();
-
-    // Reduce to find block's closest hit
-    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
-    {
-        if (tid < stride && shared_hits[tid + stride].t < shared_hits[tid].t)
-        {
-            shared_hits[tid] = shared_hits[tid + stride];
-        }
-        __syncthreads();
-    }
-
-    // Write the block's closest hit to global memory
-    if (tid == 0)
-    {
-        block_closest_hit[blockIdx.x] = shared_hits[0];
-    }
-}
-
-
-
-
 __global__ void render_image(
     Camera camera,
     glm::vec3 *image,
@@ -192,7 +142,7 @@ int _main(int argc, char *argv[])
     const int image_width = args.width;
     const int image_height = args.height;
     const bool shadow_enable = args.shadow;
-    // TODO: delete
+    const bool cuda_enable = args.cuda;
     const int num_threads = args.num_threads;
 
     cv::Mat image(image_height, image_width, CV_8UC3);
@@ -219,10 +169,10 @@ int _main(int argc, char *argv[])
         }
     }
 
-    std::cout << "spheres: " << spheres.size() << std::endl;
     std::cout << "lights: " << lights.size() << std::endl;
+    std::cout << "spheres: " << spheres.size() << std::endl;
     std::cout << "planes: " << planes.size() << std::endl;
-    // std::cout << "camera: " << camera.fov << std::endl;
+    std::cout << "triangle: " << triangles.size() << std::endl;
 
     auto start_time = high_resolution_clock::now();
 

@@ -11,9 +11,12 @@
 #include "multi_thread_tool.h"
 
 namespace cArg {
+
+    // ========== default ==========
     int default_width = 1000;
     int default_height = 1000;
-    bool default_shadow = true;
+    bool default_shadow = false;
+    bool default_cuda = false;
     std::string default_out_file = "output.png";
     int default_num_thread(void) {
         int device_num_thread = std::thread::hardware_concurrency();
@@ -30,6 +33,7 @@ namespace cArg {
         int width = default_width;
         int height = default_height;
         bool shadow = default_shadow;
+        bool cuda = default_cuda;
     };
 
     std::string __str__(cArg::CommandLineArgs args) {
@@ -39,7 +43,8 @@ namespace cArg {
             "num threads: " + std::to_string(args.num_threads) + "\n" + \
             "width: " + std::to_string(args.width) + "\n" + \
             "height: " + std::to_string(args.height) + "\n" + \
-            "shadow: " + (args.shadow ? "true" : "false") + "\n";
+            "shadow: " + (args.shadow ? "true" : "false") + "\n" + \
+            "cuda: " + std::to_string(args.cuda) + "\n";
     }
 
     std::string __help_str__(void) {
@@ -51,7 +56,8 @@ namespace cArg {
             "--threads <number_of_threads> [optional, default:max available threads]" + "\n" + \
             "--width <width_of_output_image> [optional, default:1000]" + "\n" + \
             "--height <height_of_output_image> [optional, default: 1000]" + "\n" + \
-            "--no-shadow" + "\tturn of the shadow feature\n";
+            "--shadow <true|false> [optional, default:false]" + "\n" + \
+            "--cuda [optional]" + "\t:activate cuda\n";
     }
 
     enum ErrorCode {
@@ -71,6 +77,8 @@ namespace cArg {
         INVALID_THREAD_NUM,
         INVALID_WIDTH,
         INVALID_HEIGHT,
+        INVALID_SHADOW,
+
         UNKNOWN_ERROR,
     };
 
@@ -90,6 +98,8 @@ namespace cArg {
             return TO_STRING(ErrorCode::INVALID_WIDTH);
         case ErrorCode::INVALID_HEIGHT:
             return TO_STRING(ErrorCode::INVALID_HEIGHT);
+        case ErrorCode::INVALID_SHADOW:
+            return TO_STRING(ErrorCode::INVALID_SHADOW);
         
         case ErrorCode::UNKNOWN_ERROR:
         default:
@@ -148,8 +158,16 @@ namespace cArg {
                     return ErrorCode::INCOMPLETE_ARGUMENT;
                 args->height = std::atoi(argv[++i]);
             }
-            else if (arg == "--no-shadow") {
-                args->shadow = false;
+            else if (arg == "--shadow") {
+                if(i+1 >= argc)
+                    return ErrorCode::INVALID_SHADOW;
+                std::string arg = std::string(argv[++i]);
+                if (arg == "true")
+                    args->shadow = true;
+                else if (arg == "false") 
+                    args->shadow = false;
+                else
+                    return ErrorCode::INVALID_SHADOW;
             }
             else {
                 /*std::cerr << "Unknown or incomplete argument: " << arg << std::endl;
