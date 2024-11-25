@@ -78,7 +78,7 @@ nvcc -O3 -o out/cuda source/main.cu `pkg-config --cflags --libs opencv4` --disab
 <h3>mesh 1000x1000</h3>
 
 ```console
-CPU (Multithread): 36.255803 seconds
+CPU (Multi thread): 36.255803 seconds
 CUDA: 0.411442 seconds
 speed up: x88.2
 ```
@@ -86,18 +86,18 @@ speed up: x88.2
 <h3>mesh 5000x5000</h3>
 
 ```console
-CPU (SingleCore, Intel(R) Xeon(R) Gold 5218R): -
-CPU (MultiThread, Intel(R) Xeon(R) Gold 5218R): 535.287 seconds
+CPU (Single Core, Intel(R) Xeon(R) Gold 5218R): -
+CPU (Multi Thread, Intel(R) Xeon(R) Gold 5218R): 535.287 seconds
 CUDA (RTX A5500): 6.625 seconds
 speed up: x80.8
 ```
 
-<h3>Spheramid 10000x10000 </h3>
+<h3>Spheramid 5000x5000 </h3>
 
 ```console
-CPU (MultiThread, Intel(R) Xeon(R) Gold 5218R): 5.394 seconds
-CUDA (RTX A5500): 0.742 seconds
-spped up: x7.26
+CPU (Single Core, Intel(R) Xeon(R) Gold 5218R): 23.344 seconds
+CPU (Multi Thread, Intel(R) Xeon(R) Gold 5218R): 1.385 seconds
+CUDA (RTX A5500): 0.248 seconds
 ```
 
 ----------
